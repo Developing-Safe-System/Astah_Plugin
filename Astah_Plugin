@@ -1,0 +1,232 @@
+// Authors: Neima Arma & Debora Fried
+// Version: 11.2022
+
+// Variables declaration
+var numOfHCF = 0;
+var countermeasuresArray = [];
+
+run()
+function run()
+{
+    getCountermeasure();
+    setCountermeasure();
+}
+
+function getCountermeasure()
+{
+    getLossScenarioAndUCA();
+}
+
+// This function extracts from the table the UCA and its corresponding LossScenario and calls the sendToAI21 function
+function getLossScenarioAndUCA()
+{
+    with (new JavaImporter(com.change_vision.jude.api.stpa.model))
+    {
+        // Get facet model
+        var facet = astah.getFacet(IStampFacet.FACET_SYMBOLIC_NAME);
+        var analysis = facet.getRootElement(IStpaAnalysis.class);
+        for (var i in analysis.diagrams)
+        {
+            var diagram = analysis.diagrams[i]
+            if (diagram instanceof ILossScenarioTable)
+            {
+                var hazardCausalFactors = diagram.hazardCausalFactors;
+                for (var j in hazardCausalFactors)
+                {
+                    var UCA = diagram.unsafeControlAction.description;
+                    var hcf = hazardCausalFactors[j];
+                    for (var k in hcf.hazardScenarios)
+                    {
+                        var scenario = hcf.hazardScenarios[k];
+                        var lossScenario = scenario.description;
+                        var requestToMachine = "UCA: " + UCA + "LossScenario: " + lossScenario + "\n" + "instruction:";
+                        sendToAI21Machine(requestToMachine);
+                    }
+                }
+            }
+        }
+    }
+}
+
+// This function gets a request string, sends it by a POST request to AI21 and inserts the answer into an array in order.
+function sendToAI21Machine(request)
+{
+    //Counting the number of HCFs
+    numOfHCF++;
+    var json =
+    {
+        "prompt": "Unsafe control action: Piloting Controller provides actuator movements during takeoff when the aircraft is not in a safe departure state. Loss scenario:  The piloting controller had the correct process model of the state of the aircraft and the expected safe departure state at the point that the aircraft was checked. However, prior to departure, the state of the aircraft changes and the piloting controller does not update the process model, believing that there is no need to check the state of the aircraft again. As a result, they are unaware that the aircraft is no longer in a saf departure state.\nInstruction:",
+        "numResults": 1,
+        "maxTokens": 40,
+        "temperature": 0.7,
+        "topKReturn": 0,
+        "topP": 1,
+        "countPenalty": {
+            "scale": 0,
+            "applyToNumbers": false,
+            "applyToPunctuations": false,
+            "applyToStopwords": false,
+            "applyToWhitespaces": false,
+            "applyToEmojis": false
+        },
+        "frequencyPenalty": {
+            "scale": 0,
+            "applyToNumbers": false,
+            "applyToPunctuations": false,
+            "applyToStopwords": false,
+            "applyToWhitespaces": false,
+            "applyToEmojis": false
+        },
+        "presencePenalty": {
+            "scale": 0,
+            "applyToNumbers": false,
+            "applyToPunctuations": false,
+            "applyToStopwords": false,
+            "applyToWhitespaces": false,
+            "applyToEmojis": false
+        },
+        "stopSequences": []
+    };
+    // Sends the json and the url address to httpPost function
+    var response =httpPost("https://api.ai21.com/studio/v1/j1-jumbo/model_5_updated/complete",JSON.stringify(json)).data;
+    var repos = JSON.parse(response);
+    var countermeasureFromMachine = repos.completions[0].data.text;
+    // Puts the answer from the machine in the appropriate place in the countermeasures array.
+    countermeasuresArray[numOfHCF - 1] = "Added by machine: \n" +countermeasureFromMachine;
+
+}
+
+// This function get a URL and data,and sends the data to the URL address by HTTP POST request.
+function httpPost(theUrl, data, contentType, Authorization)
+{
+    contentType = contentType || "application/json";
+    Authorization = Authorization || "Bearer aHH8MglFiqajtQODhifQ0EqBZsxXU3hS";
+    var con = new java.net.URL(theUrl).openConnection();
+    con.requestMethod = "POST";
+    con.setRequestProperty("Authorization", Authorization);
+    con.setRequestProperty("Content-Type", contentType);
+    con.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11");
+    // Send post request
+    con.doOutput = true;
+    write(con.outputStream, data);
+    return asResponse(con);
+}
+
+
+function asResponse(con)
+{
+    var d = read(con.inputStream);
+    return { data: d, statusCode: con.responseCode };
+}
+
+
+function write(outputStream, data)
+{
+    var wr = new java.io.DataOutputStream(outputStream);
+    wr.writeBytes(data);
+    wr.flush();
+    wr.close();
+}
+
+function read(inputStream)
+{
+    var inReader = new java.io.BufferedReader(new java.io.InputStreamReader(inputStream));
+    var inputLine;
+    var response = new java.lang.StringBuffer();
+    while ((inputLine = inReader.readLine()) != null) 
+    {
+        response.append(inputLine);
+    }
+    inReader.close();
+    return response.toString();
+}
+
+// This function sets all the countermeasures from the countermeasures table with thier corresponding response from the machine.
+function setCountermeasure()
+{
+    with (new JavaImporter(com.change_vision.jude.api.stpa.model))
+     {
+        var facet = astah.getFacet(IStampFacet.FACET_SYMBOLIC_NAME);
+        var analysis = facet.getRootElement(IStpaAnalysis.class);
+        for (var i in analysis.diagrams)
+        {
+            var diagram = analysis.diagrams[i]
+            if (diagram instanceof ILossScenarioTable)
+             {
+                var hazardCausalFactors = diagram.hazardCausalFactors;
+                for (var j in hazardCausalFactors)
+                {
+                    var hcf = hazardCausalFactors[j];
+                    for (var k in hcf.countermeasures)
+                    {
+                        var countermeasure = hcf.countermeasures[k];
+                    }
+                }
+                addCountermeasure(hazardCausalFactors);
+            }
+        }
+    }
+    editAllCounermeasures();
+}
+
+// This function creates a countemeasure adapted to a HCF.
+function addCountermeasure(hazardCausalFactors)
+{
+    with (new JavaImporter(com.change_vision.jude.api.stpa.editor))
+    {
+        var TransactionManager = Java.type('com.change_vision.jude.api.inf.editor.TransactionManager');
+        TransactionManager.beginTransaction();
+        var editor = astah.getModelEditorFactory().getModelEditor(StampModelEditor.class);
+        var cm = editor.createCountermeasure(hazardCausalFactors,"countermeasure created by script");
+        cm.setDescription("default");
+        TransactionManager.endTransaction();
+    }
+}
+
+// This function goes threw all the countermeasures in the countermeasures table and edits them.
+function editAllCounermeasures()
+ {
+    with (new JavaImporter(com.change_vision.jude.api.stpa.model))
+    {
+        var facet = astah.getFacet(IStampFacet.FACET_SYMBOLIC_NAME);
+        var analysis = facet.getRootElement(IStpaAnalysis.class);
+        var d = 0;
+        // go threw all diagrams
+        for (var i in analysis.diagrams)
+         {
+            var diagram = analysis.diagrams[i]
+            if (diagram instanceof ILossScenarioTable)
+            {
+                var hazardCausalFactors = diagram.hazardCausalFactors;
+                // go threw all HCF's
+                for (var j in hazardCausalFactors)
+                {
+                    var hcf = hazardCausalFactors[j];
+                    // go threw all it's countermeasures and edit them
+                    for (var k in hcf.countermeasures)
+                    {
+                        var countermeasure = hcf.countermeasures[k];
+                        editCountermeasure(analysis, countermeasure, countermeasuresArray[d]);
+                        d++;
+                    }
+                }
+            }
+        }
+    }
+}
+
+//  This function gets a countermeasure description string and puts it in the appropriate place in the countermeasures table.
+function editCountermeasure(analysis, countermeasure, countermeasureDescription)
+{
+    with (new JavaImporter(com.change_vision.jude.api.stpa.editor))
+    {
+        var TransactionManager =Java.type('com.change_vision.jude.api.inf.editor.TransactionManager');
+        TransactionManager.beginTransaction();
+        countermeasure.setRemarks("The countermeasure was generated by a learning machine.");
+        var components = analysis.components;
+        countermeasure.setTargetComponents(components);
+        countermeasure.setDescription(countermeasureDescription);
+        TransactionManager.endTransaction();
+    }
+}
+
