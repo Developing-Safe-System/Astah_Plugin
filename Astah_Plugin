@@ -50,7 +50,7 @@ function sendToAI21Machine(request)
     numOfHCF++;
     var json =
     {
-        "prompt": "Unsafe control action: Piloting Controller provides actuator movements during takeoff when the aircraft is not in a safe departure state. Loss scenario:  The piloting controller had the correct process model of the state of the aircraft and the expected safe departure state at the point that the aircraft was checked. However, prior to departure, the state of the aircraft changes and the piloting controller does not update the process model, believing that there is no need to check the state of the aircraft again. As a result, they are unaware that the aircraft is no longer in a saf departure state.\nInstruction:",
+        "prompt": request,
         "numResults": 1,
         "maxTokens": 40,
         "temperature": 0.7,
