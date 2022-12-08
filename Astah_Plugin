@@ -8,13 +8,8 @@ var countermeasuresArray = [];
 run()
 function run()
 {
-    getCountermeasure();
-    setCountermeasure();
-}
-
-function getCountermeasure()
-{
     getLossScenarioAndUCA();
+    setCountermeasure();
 }
 
 // This function extracts from the table the UCA and its corresponding LossScenario and calls the sendToAI21 function
