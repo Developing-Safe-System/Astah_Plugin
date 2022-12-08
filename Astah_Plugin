@@ -83,7 +83,7 @@ function sendToAI21Machine(request)
         "stopSequences": []
     };
     // Sends the json and the url address to httpPost function
-    var response =httpPost("https://api.ai21.com/studio/v1/j1-jumbo/model_5_updated/complete",JSON.stringify(json)).data;
+    var response =httpPost("https://api.ai21.com/studio/v1/j1-jumbo/model_2_version_2/complete",JSON.stringify(json)).data;
     var repos = JSON.parse(response);
     var countermeasureFromMachine = repos.completions[0].data.text;
     // Puts the answer from the machine in the appropriate place in the countermeasures array.
@@ -108,19 +108,18 @@ function httpPost(theUrl, data, contentType, Authorization)
 }
 
 
-function asResponse(con)
-{
-    var d = read(con.inputStream);
-    return { data: d, statusCode: con.responseCode };
-}
-
-
 function write(outputStream, data)
 {
     var wr = new java.io.DataOutputStream(outputStream);
     wr.writeBytes(data);
     wr.flush();
     wr.close();
+}
+
+function asResponse(con)
+{
+    var d = read(con.inputStream);
+    return { data: d, statusCode: con.responseCode };
 }
 
 function read(inputStream)
